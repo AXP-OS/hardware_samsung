@@ -74,13 +74,22 @@ $(INSTALLED_BOOTIMAGE_TARGET): $(MKBOOTIMG) $(INTERNAL_BOOTIMAGE_FILES) $(BOOTIM
 	$(hide) $(LOKI_TOOL) patch boot $(TARGET_LOKI_ABOOT_IMAGE) $@ $@.lok
 	$(hide) cp $@.lok $@ || true
 	$(hide) $(call assert-max-image-size,$@,$(BOARD_BOOTIMAGE_PARTITION_SIZE),raw)
+	$(hide) $(AVBTOOL) add_hash_footer \
+	  --image $@ \
+	  --partition_size $(BOARD_BOOTIMAGE_PARTITION_SIZE) \
+	  --partition_name boot $(INTERNAL_AVB_BOOT_SIGNING_ARGS) \
+	  $(BOARD_AVB_BOOT_ADD_HASH_FOOTER_ARGS)
 	@echo "Made boot image: $@"
 
 $(INSTALLED_RECOVERYIMAGE_TARGET): $(MKBOOTIMG) $(recovery_ramdisk) $(recovery_kernel) $(RECOVERYIMAGE_EXTRA_DEPS)
 	@echo "----- Making recovery image ------"
 	$(hide) $(MKBOOTIMG) $(INTERNAL_RECOVERYIMAGE_ARGS) $(INTERNAL_MKBOOTIMG_VERSION_ARGS) $(BOARD_MKBOOTIMG_ARGS) --output $@ --id > $(RECOVERYIMAGE_ID_FILE)
 	$(hide) echo -n "SEANDROIDENFORCE" >> $@
-	$(hide) $(LOKI_TOOL) patch recovery $(TARGET_LOKI_ABOOT_IMAGE) $@ $@.lok
-	$(hide) cp $@.lok $@ || true
+	echo "++++  Exec regular AVB handling  ++++"
 	$(hide) $(call assert-max-image-size,$@,$(BOARD_RECOVERYIMAGE_PARTITION_SIZE),raw)
+	$(AVBTOOL) add_hash_footer \
+	   --image $@ \
+	   --partition_size $(BOARD_RECOVERYIMAGE_PARTITION_SIZE) \
+	   --partition_name recovery $(INTERNAL_AVB_RECOVERY_SIGNING_ARGS) \
+	   $(BOARD_AVB_RECOVERY_ADD_HASH_FOOTER_ARGS)
 	@echo "Made recovery image: $@"
